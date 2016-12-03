@@ -10,11 +10,21 @@ namespace aaSQLToSplunk
     {
         public int ReadInterval = 5000;
         public int MaximumReadInterval = 50000;
-        public ulong MaxUnreadRecords = 1000;
-        public string SQLConnectionString = "";
-        public string SQLQuery = "";
+        public ulong MaxRecords = 1000;
+        public string SQLConnectionString;
+        public string SQLQuery;
+        public string SQLSequenceField;
+        public string SQLSequenceFieldDefaultValue;
+        public string SQLTimestampField;
+        public string SQLOrderByClause = " ORDER by {{ SQLSequenceField}} DESC";
+        public string SQLWhereClause = " WHERE {{SQLSequenceField}} > {{LastSQLSequenceFieldValue}}";
         public string SplunkBaseAddress = "http://localhost:8088";
-        public string AuthorizationToken = "0000-0000-0000-0000-0000";
-        public Guid ClientID = Guid.NewGuid();
+        public string SplunkAuthorizationToken;
+        public Guid SplunkClientID = Guid.NewGuid();
+        public bool SplunkIgnoreSSLErrors = false; // TODO
+        public string SplunkSourceHost = Environment.MachineName;
+        public string SplunkSourceData;
+        public string SplunkEventTimestampFormat = "yyyy-MM-dd HH:mm:ss.ffffff zz";
+        public string CacheFilename;
     }
 }
