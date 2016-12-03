@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using aaSQLToSplunk.Helpers;
 using System.IO;
 using System.Net;
+using System.Globalization;
 
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "log.config", Watch = true)]
 namespace aaSQLToSplunk
@@ -176,8 +177,6 @@ namespace aaSQLToSplunk
                         //Get the KVP string for the records
                         kvpValue = dataTable.ToKVP(additionalKVPValues.ToString(),RuntimeOptions.SQLTimestampField, RuntimeOptions.SplunkEventTimestampFormat);
 
-                        //log.Debug(kvpValue);
-
                         //Transmit the records
                         var result = TransmitValues(SplunkHTTPClient, RuntimeOptions.SplunkClientID, kvpValue).Result;
 
@@ -213,47 +212,45 @@ namespace aaSQLToSplunk
         private static void WriteCacheFile(DataTable dataTable)
         {
             string cacheWriteValue;
-            DateTime dateTimeValue;
 
-            cacheWriteValue = dataTable.AsEnumerable().OrderByDescending(r => r[RuntimeOptions.SQLSequenceField]).First()[RuntimeOptions.SQLSequenceField].ToString();
-            
-            if(DateTime.TryParse(cacheWriteValue,out dateTimeValue))
-            {
-               x
-            }
-            else
-            {
-                // Do nothing
-            }
+            cacheWriteValue = string.Format("{0:" + RuntimeOptions.CacheWriteValueStringFormat + "}", dataTable.AsEnumerable().OrderByDescending(r => r[RuntimeOptions.SQLSequenceField]).First()[RuntimeOptions.SQLSequenceField]);
+            log.DebugFormat("cacheWriteValue : {0}", cacheWriteValue);
+            File.WriteAllText(CacheFileName, cacheWriteValue);
 
-            // Write the last sequence value to the cache value named for the SQLSequence Field.  Order the result set by the sequence field then select the first record
-            File.WriteAllText(CacheFileName, dataTable.AsEnumerable().OrderByDescending(r => r[RuntimeOptions.SQLSequenceField]).First()[RuntimeOptions.SQLSequenceField].ToString(RuntimeOptions.SplunkEventTimestampFormat));
         }
 
         private static string GetSqlQuery()
         {
             string returnValue;
-            string sqlSequenceFieldValue;
+            string cachedSqlSequenceFieldValue;
+            DateTime cachedSqlSequenceFieldValueDateTime;
 
             //Get the base query and limit by TOP XX
             returnValue = RuntimeOptions.SQLQuery.Replace("{{MaxRecords}}", RuntimeOptions.MaxRecords.ToString());
             
+
             // Add the where clause if we can get the cached Sequence Field Value
             try
             {
                 if (File.Exists(CacheFileName))
                 {
-                    sqlSequenceFieldValue = File.ReadAllText(CacheFileName) ?? string.Empty;
+                    cachedSqlSequenceFieldValue = File.ReadAllText(CacheFileName) ?? string.Empty;
                 }
                 else
                 {
-                    sqlSequenceFieldValue = RuntimeOptions.SQLSequenceFieldDefaultValue;
+                    cachedSqlSequenceFieldValue = RuntimeOptions.SQLSequenceFieldDefaultValue;
                 }
-                
 
-                if (sqlSequenceFieldValue != string.Empty)
+
+                //TODO:RESUME
+                if (DateTime.TryParseExact(cachedSqlSequenceFieldValue, RuntimeOptions.CacheWriteValueStringFormat, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out cachedSqlSequenceFieldValueDateTime))
                 {
-                    returnValue += RuntimeOptions.SQLWhereClause.Replace("{{SQLSequenceField}}", RuntimeOptions.SQLSequenceField).Replace("{{LastSQLSequenceFieldValue}}", sqlSequenceFieldValue);
+                    cachedSqlSequenceFieldValue = cachedSqlSequenceFieldValueDateTime.ToString("yyyy-MM-dd HH:mm:ss.ffffff");
+                }
+
+                if (cachedSqlSequenceFieldValue != string.Empty)
+                {
+                    returnValue += RuntimeOptions.SQLWhereClause.Replace("{{SQLSequenceField}}", RuntimeOptions.SQLSequenceField).Replace("{{LastSQLSequenceFieldValue}}", cachedSqlSequenceFieldValue);
 
                    // returnValue += " WHERE " + RuntimeOptions.SQLSequenceField + " > " + sqlSequenceFieldValue;'//'
                 }
