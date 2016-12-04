@@ -17,8 +17,9 @@ namespace aaSQLToSplunk
         public string SQLSequenceFieldDefaultValue;
         public string SQLTimestampField;
         public bool SQLTimeStampIsUTC = false;
+        public bool CacheWriteValueIsUTCTimestamp = false;
+        public int CacheWriteValueTimestampMillisecondsAdd = 1;
         public string CacheWriteValueStringFormat = "";  // Any legal format that can be used with string.Format
-        //public bool CacheWriteValueIsTimestamp = false;
         public string SQLOrderByClause = " ORDER by {{ SQLSequenceField}} DESC";
         public string SQLWhereClause = " WHERE {{SQLSequenceField}} > {{LastSQLSequenceFieldValue}}";
         public string SplunkBaseAddress = "http://localhost:8088";

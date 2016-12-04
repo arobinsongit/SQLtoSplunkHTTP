@@ -12,6 +12,8 @@ using aaSQLToSplunk.Helpers;
 using System.IO;
 using System.Net;
 using System.Globalization;
+using SplunkHTTPUtility;
+using Microsoft.Extensions.CommandLineUtils;
 
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "log.config", Watch = true)]
 namespace aaSQLToSplunk
@@ -23,95 +25,85 @@ namespace aaSQLToSplunk
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         // HTTP Client for data transmission to Splunk
-        private static HttpClient _splunkHTTPClient;
+        private static SplunkHTTP splunkHTTPClient;
+        internal static SplunkHTTP SplunkHTTPClient
+        {
+            get
+            {
+                return splunkHTTPClient;
+            }
+
+            set
+            {
+                splunkHTTPClient = value;
+            }
+        }
 
         //Setup Timer for reading logs
-        private static Timer _readTimer;
-
+        private static Timer readTimer;
+        
         //Runtime Options Object
-        private static OptionsStruct _runtimeOptions;
+        private static OptionsStruct runtimeOptions;
+        internal static OptionsStruct RuntimeOptions
+        {
+            get
+            {
+                if (runtimeOptions == null)
+                {
+                    runtimeOptions = JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText("options.json"));
+                }
+
+                return runtimeOptions;
+            }
+
+            set
+            {
+                runtimeOptions = value;
+            }
+        }
 
         // Global SQL Connection
-        private static SqlConnection _sqlConnection;
-
-        public static OptionsStruct RuntimeOptions
+        private static SqlConnection sqlConnection;
+        internal static SqlConnection SQLConnection
         {
             get
             {
-                if (_runtimeOptions == null)
-                {
-                    _runtimeOptions = JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText("options.json"));
-                }
-
-                return _runtimeOptions;
-            }
-
-            set
-            {
-                _runtimeOptions = value;
-            }
-        }
-
-        public static SqlConnection SQLConnection
-        {
-            get
-            {
-                if (_sqlConnection == null)
+                if (sqlConnection == null)
                 {
                     log.DebugFormat("Connection String : {0}", RuntimeOptions.SQLConnectionString);
-                    _sqlConnection = new SqlConnection(RuntimeOptions.SQLConnectionString);
+                    sqlConnection = new SqlConnection(RuntimeOptions.SQLConnectionString);
                 }
 
-                if (_sqlConnection.State != ConnectionState.Open)
+                if (sqlConnection.State != ConnectionState.Open)
                 {
                     log.Info("Opening SQL connection");
-                    _sqlConnection.Open();
+                    sqlConnection.Open();
                 }
 
-                return _sqlConnection;
+                return sqlConnection;
             }
 
             set
             {
-                _sqlConnection = value;
+                sqlConnection = value;
             }
         }
 
-        public static HttpClient SplunkHTTPClient
+        internal static string CacheFileName
         {
             get
             {
-                if (_splunkHTTPClient == null)
-                {
-                    _splunkHTTPClient = new HttpClient();
-                    _splunkHTTPClient.BaseAddress = new Uri(RuntimeOptions.SplunkBaseAddress);
-                    _splunkHTTPClient.DefaultRequestHeaders.Add("Authorization", "Splunk " + RuntimeOptions.SplunkAuthorizationToken);
-                }
-
-                return _splunkHTTPClient;
-            }
-
-            set
-            {
-                _splunkHTTPClient = value;
-            }
-        }
-
-        private static string CacheFileName
-        {
-            get
-            {
-                if(RuntimeOptions.CacheFilename != null)
+                if (RuntimeOptions.CacheFilename != null)
                 {
                     return RuntimeOptions.CacheFilename;
                 }
                 else
-                { 
+                {
                     return RuntimeOptions.SplunkSourceData + "-" + RuntimeOptions.SQLSequenceField + ".txt";
                 }
             }
         }
-
+        
         #endregion
 
         static void Main(string[] args)
@@ -121,7 +113,26 @@ namespace aaSQLToSplunk
             log4net.Config.BasicConfigurator.Configure();
 
             try
-            {
+            { 
+                
+                //https://github.com/aspnet/Scaffolding/blob/ff39da926a1aa605599c295633bfcc74381af19d/src/Microsoft.VisualStudio.Web.CodeGeneration.Tools/Program.cs
+
+                //// Parse Arguments
+                //CommandLineApplication commandLineApplication = new CommandLineApplication(throwOnUnexpectedArg: false);
+                ////CommandArgument names = null;
+                
+                //CommandOption optionsfilename = commandLineApplication.Option("-o |--optionsfilename <greeting>", "Options file name.  If full path is not specified then file is assumed to be in same folder with EXE",CommandOptionType.SingleValue);                
+                //commandLineApplication.HelpOption("-? | -h | --help");
+
+                //commandLineApplication.OnExecute(() =>
+                //{
+                //    RuntimeOptions = JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText(optionsfilename));
+                //});
+                //commandLineApplication.Execute(args);
+                
+                // Setup the SplunkHTTPClient
+                SplunkHTTPClient = new SplunkHTTP(log, RuntimeOptions.SplunkAuthorizationToken, RuntimeOptions.SplunkBaseAddress, RuntimeOptions.SplunkClientID);
+                
                 //Eat any SSL errors
                 // TODO : Test this feature
                 ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) =>
@@ -130,27 +141,27 @@ namespace aaSQLToSplunk
                 };
 
                 // Configure Timers
-                _readTimer = new Timer(RuntimeOptions.ReadInterval);
-                _readTimer.Elapsed += ReadTimer_Elapsed;
+                readTimer = new Timer(RuntimeOptions.ReadInterval);
+                readTimer.Elapsed += ReadTimer_Elapsed;
 
                 //Start Timers
-                _readTimer.Start();
+                readTimer.Start();
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 log.Error(ex);
             }
 
-            //Prevent the console from closing when debugging
-            Console.Read();            
+            //Prevent the console from closing
+            Console.Read();
         }
 
         private static void ReadTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             ReadAndTransmitData();
         }
-        
+
         private static void ReadAndTransmitData()
         {
             DataTable dataTable = new DataTable();
@@ -163,7 +174,7 @@ namespace aaSQLToSplunk
                     SqlCommand command = new SqlCommand(GetSqlQuery(), SQLConnection);
 
                     dataTable.Load(command.ExecuteReader());
-                    
+
                     log.DebugFormat("{0} rows retrieved", dataTable.Rows.Count);
 
                     if (dataTable.Rows.Count > 0)
@@ -171,25 +182,27 @@ namespace aaSQLToSplunk
                         //Build the additional KVP values to Append
                         var additionalKVPValues = new StringBuilder();
 
-                        additionalKVPValues.AppendFormat("{0}=\"{1}\", ", "SourceHost" , RuntimeOptions.SplunkSourceHost);
+                        additionalKVPValues.AppendFormat("{0}=\"{1}\", ", "SourceHost", RuntimeOptions.SplunkSourceHost);
                         additionalKVPValues.AppendFormat("{0}=\"{1}\", ", "SourceData", RuntimeOptions.SplunkSourceData);
-                        
+
                         //Get the KVP string for the records
-                        kvpValue = dataTable.ToKVP(additionalKVPValues.ToString(),RuntimeOptions.SQLTimestampField, RuntimeOptions.SplunkEventTimestampFormat);
+                        kvpValue = dataTable.ToKVP(additionalKVPValues.ToString(), RuntimeOptions.SQLTimestampField, RuntimeOptions.SplunkEventTimestampFormat);
 
                         //Transmit the records
-                        var result = TransmitValues(SplunkHTTPClient, RuntimeOptions.SplunkClientID, kvpValue).Result;
+                        var result = SplunkHTTPClient.TransmitValues(kvpValue).Result;
+                            
+                            //TransmitValues(SplunkHTTPClient, RuntimeOptions.SplunkClientID, kvpValue).Result;
 
                         //If successful then write the last sequence value to disk
-                        if(result.StatusCode == HttpStatusCode.OK)
+                        if (result.StatusCode == HttpStatusCode.OK)
                         {
                             // Write the last sequence value to the cache value named for the SQLSequence Field.  Order the result set by the sequence field then select the first record
-                            WriteCacheFile(dataTable);     
+                            WriteCacheFile(dataTable);
                         }
                         else
                         {
                             log.Warn(result);
-                        }      
+                        }
                     }
                 }
                 else
@@ -209,25 +222,39 @@ namespace aaSQLToSplunk
             }
         }
 
+        /// <summary>
+        /// Write an entry for the maximum sequence field value into the cache file
+        /// </summary>
+        /// <param name="dataTable">Transmitted records</param>
         private static void WriteCacheFile(DataTable dataTable)
         {
             string cacheWriteValue;
 
-            cacheWriteValue = string.Format("{0:" + RuntimeOptions.CacheWriteValueStringFormat + "}", dataTable.AsEnumerable().OrderByDescending(r => r[RuntimeOptions.SQLSequenceField]).First()[RuntimeOptions.SQLSequenceField]);
-            log.DebugFormat("cacheWriteValue : {0}", cacheWriteValue);
-            File.WriteAllText(CacheFileName, cacheWriteValue);
-
+            try
+            {
+                cacheWriteValue = string.Format("{0:" + RuntimeOptions.CacheWriteValueStringFormat + "}", dataTable.AsEnumerable().OrderByDescending(r => r[RuntimeOptions.SQLSequenceField]).First()[RuntimeOptions.SQLSequenceField]);
+                log.DebugFormat("cacheWriteValue : {0}", cacheWriteValue);
+                File.WriteAllText(CacheFileName, cacheWriteValue);
+            }
+            catch(Exception ex)
+            {
+                log.Error(ex);
+            }
         }
 
+        /// <summary>
+        /// Calculate SQL query from options and cache values
+        /// </summary>
+        /// <returns></returns>
         private static string GetSqlQuery()
         {
             string returnValue;
             string cachedSqlSequenceFieldValue;
             DateTime cachedSqlSequenceFieldValueDateTime;
+            DateTimeStyles cacheDateTimeStyle;
 
             //Get the base query and limit by TOP XX
             returnValue = RuntimeOptions.SQLQuery.Replace("{{MaxRecords}}", RuntimeOptions.MaxRecords.ToString());
-            
 
             // Add the where clause if we can get the cached Sequence Field Value
             try
@@ -241,23 +268,27 @@ namespace aaSQLToSplunk
                     cachedSqlSequenceFieldValue = RuntimeOptions.SQLSequenceFieldDefaultValue;
                 }
 
-
-                //TODO:RESUME
-                if (DateTime.TryParseExact(cachedSqlSequenceFieldValue, RuntimeOptions.CacheWriteValueStringFormat, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out cachedSqlSequenceFieldValueDateTime))
+                if (RuntimeOptions.CacheWriteValueIsUTCTimestamp)
                 {
-                    cachedSqlSequenceFieldValue = cachedSqlSequenceFieldValueDateTime.ToString("yyyy-MM-dd HH:mm:ss.ffffff");
+                    cacheDateTimeStyle = DateTimeStyles.AssumeUniversal;
+                }
+                else
+                {
+                    cacheDateTimeStyle = DateTimeStyles.AssumeLocal;
+                }
+
+                if (DateTime.TryParseExact(cachedSqlSequenceFieldValue, RuntimeOptions.CacheWriteValueStringFormat, CultureInfo.InvariantCulture, cacheDateTimeStyle, out cachedSqlSequenceFieldValueDateTime))
+                {
+                    cachedSqlSequenceFieldValue = cachedSqlSequenceFieldValueDateTime.AddMilliseconds(RuntimeOptions.CacheWriteValueTimestampMillisecondsAdd).ToString("yyyy-MM-dd HH:mm:ss.ffffff");
                 }
 
                 if (cachedSqlSequenceFieldValue != string.Empty)
                 {
                     returnValue += RuntimeOptions.SQLWhereClause.Replace("{{SQLSequenceField}}", RuntimeOptions.SQLSequenceField).Replace("{{LastSQLSequenceFieldValue}}", cachedSqlSequenceFieldValue);
-
-                   // returnValue += " WHERE " + RuntimeOptions.SQLSequenceField + " > " + sqlSequenceFieldValue;'//'
                 }
             }
             catch
             {
-                                
                 // Do nothing
             }
 
@@ -268,56 +299,27 @@ namespace aaSQLToSplunk
 
             return returnValue;
         }
-        
-      
+
         /// <summary>
-        /// Transmit the KVP values via HTTP to the Splunk HTTP Raw Collector
+        /// Slow down the timer by doubling the interval up to MaximumReadInterval
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="clientID"></param>
-        /// <param name="kvpValues"></param>
-        static async Task<HttpResponseMessage> TransmitValues(HttpClient client, Guid clientID, string kvpValues)
-        {
-            HttpResponseMessage responseMessage = new HttpResponseMessage();
-
-            try
-            {
-                log.DebugFormat("Transmitting {0} bytes", System.Text.ASCIIEncoding.Unicode.GetByteCount(kvpValues));
-                responseMessage = await client.PostAsync("/services/collector/raw?channel=" + clientID, new StringContent(kvpValues));
-            }
-            catch (Exception ex)
-            {
-                if (ex is HttpRequestException || ex is AggregateException)
-                {
-                    IncrementTimerBackoff();
-                    responseMessage.StatusCode = HttpStatusCode.ServiceUnavailable;
-                    responseMessage.ReasonPhrase = string.Format("Transmit failed : {0}", ex.Message);
-                }
-                else
-                {
-                    log.Error(ex);
-                }
-            }
-            return responseMessage;
-        }
-
         private static void IncrementTimerBackoff()
         {
             try
             {
-                var currentInterval = _readTimer.Interval;
+                var currentInterval = readTimer.Interval;
 
                 if (currentInterval < RuntimeOptions.MaximumReadInterval)
                 {
-                    _readTimer.Interval = System.Math.Min(currentInterval * 2, RuntimeOptions.MaximumReadInterval);
-                    log.WarnFormat("Read Timer interval set to {0} milliseconds", _readTimer.Interval);
+                    readTimer.Interval = System.Math.Min(currentInterval * 2, RuntimeOptions.MaximumReadInterval);
+                    log.WarnFormat("Read Timer interval set to {0} milliseconds", readTimer.Interval);
                 }
             }
             catch (Exception ex)
             {
                 log.Error(ex);
-                // Set to a default read interval of 5000
-                _readTimer.Interval = 60000;
+                // Set to a default read interval of 60000
+                readTimer.Interval = 60000;
             }
         }
     }
