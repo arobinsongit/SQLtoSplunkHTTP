@@ -113,14 +113,67 @@ namespace aaSQLToSplunk
             log4net.Config.BasicConfigurator.Configure();
 
             try
-            { 
-                
+            {
+
                 //https://github.com/aspnet/Scaffolding/blob/ff39da926a1aa605599c295633bfcc74381af19d/src/Microsoft.VisualStudio.Web.CodeGeneration.Tools/Program.cs
+
+                #region Argument Options
+
+                var app = new CommandLineApplication(false)
+                {
+                    Name = "aaSQLToSplunk",
+                    Description = "SQL Server to Splunk Forwarder"
+                };
+                
+                // Define app Options; 
+                var helpOption = app.HelpOption("-?|-h|--help");
+                var optionsFilePath = app.Option("-o|--optionsfile <PATH>", "Path to options file", CommandOptionType.SingleValue);
+
+                app.OnExecute(() =>
+                {
+                    if(helpOption.HasValue())
+                    {
+                        Environment.Exit(0);
+                        return 0;
+                    }
+                    
+                    try
+                    {
+                        string optionsPath = optionsFilePath.Value();
+                        if (string.IsNullOrEmpty(optionsPath))
+                        {
+                            optionsPath = "options.json";
+                        }
+
+                        if (System.IO.File.Exists(optionsPath))
+                        {
+                            RuntimeOptions = JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText(optionsPath));
+                        }
+                        else
+                        {
+                            log.WarnFormat("Specified options file {0} does not exist. Loading default values.", optionsPath);
+                            RuntimeOptions = new OptionsStruct();
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        RuntimeOptions = new OptionsStruct();
+                        log.Error(ex);
+                    }
+                    
+                    return 0;
+                }
+                );
+                
+                app.Execute(args);
+                
+                #endregion
+
 
                 //// Parse Arguments
                 //CommandLineApplication commandLineApplication = new CommandLineApplication(throwOnUnexpectedArg: false);
                 ////CommandArgument names = null;
-                
+
                 //CommandOption optionsfilename = commandLineApplication.Option("-o |--optionsfilename <greeting>", "Options file name.  If full path is not specified then file is assumed to be in same folder with EXE",CommandOptionType.SingleValue);                
                 //commandLineApplication.HelpOption("-? | -h | --help");
 
@@ -129,7 +182,7 @@ namespace aaSQLToSplunk
                 //    RuntimeOptions = JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText(optionsfilename));
                 //});
                 //commandLineApplication.Execute(args);
-                
+
                 // Setup the SplunkHTTPClient
                 SplunkHTTPClient = new SplunkHTTP(log, RuntimeOptions.SplunkAuthorizationToken, RuntimeOptions.SplunkBaseAddress, RuntimeOptions.SplunkClientID);
                 
