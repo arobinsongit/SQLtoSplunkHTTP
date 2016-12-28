@@ -243,4 +243,4 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
-/aaSQLToSplunk/options.json
+/SQLtoSplunkHTTP/options.json

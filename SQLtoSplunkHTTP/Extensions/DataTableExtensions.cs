@@ -8,7 +8,7 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Data;
 
-namespace aaSQLToSplunk.Helpers
+namespace SQLtoSplunkHTTP.Helpers
 {
     /// <summary>
     /// Extension methods for reading different data types from streams.

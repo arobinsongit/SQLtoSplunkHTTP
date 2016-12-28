@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Timers;
 using Newtonsoft.Json;
-using aaSQLToSplunk.Helpers;
+using SQLtoSplunkHTTP.Helpers;
 using System.IO;
 using System.Net;
 using System.Globalization;
@@ -19,7 +19,7 @@ using SplunkHTTPUtility;
 using Microsoft.Extensions.CommandLineUtils;
 
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "log.config", Watch = true)]
-namespace aaSQLToSplunk
+namespace SQLtoSplunkHTTP
 {
     class Program
     {
