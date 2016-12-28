@@ -74,6 +74,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
+    <None Include="README.MD" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\DataReaderExtensions.cs" />
