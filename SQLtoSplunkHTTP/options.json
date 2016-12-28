@@ -1,0 +1,42 @@
+﻿{
+  // Object Change Log
+  //"SplunkAuthorizationToken": "616DB036-B58C-4B15-A661-5B57FE08B2BB",
+  //"SplunkBaseAddress": "http://li1280-175.members.linode.com:8088",
+  //"SplunkSourceData": "gobject_change_log",
+  //"SQLConnectionString": "Data Source=(local);Initial Catalog=SplunkTest;Integrated Security=SSPI",
+  //"SQLOrderByClause": " ORDER by {{SQLSequenceField}} DESC",
+  //"SQLQuery": "SELECT TOP {{MaxRecords}} dbo.gobject_change_log.gobject_change_log_id, dbo.gobject_change_log.change_date, dbo.gobject_change_log.gobject_id, dbo.gobject_change_log.operation_id, dbo.gobject_change_log.user_comment, dbo.gobject_change_log.configuration_version, dbo.gobject_change_log.user_profile_name, dbo.gobject.area_gobject_id,  dbo.gobject.tag_name, dbo.gobject.is_template, dbo.lookup_operation.operation_code, dbo.lookup_operation.operation_name FROM dbo.gobject_change_log INNER JOIN dbo.gobject ON dbo.gobject_change_log.gobject_id = dbo.gobject.gobject_id INNER JOIN dbo.lookup_operation ON dbo.gobject_change_log.operation_id = dbo.lookup_operation.operation_id ",
+  //"SQLSequenceField": "gobject_change_log_id",
+  //"SQLSequenceFieldDefaultValue": "0",
+  //"SQLTimestampField": "change_date",
+  //"SQLWhereClause": " WHERE {{SQLSequenceField}} > {{LastSQLSequenceFieldValue}}",
+
+  //// Alarms
+  //"SplunkAuthorizationToken": "E4752694-B887-448D-93C4-F9DE9C9972F2",
+  //"SplunkBaseAddress": "http://li1280-175.members.linode.com:8088",
+  //"SplunkSourceData": "WonderwareAlarms",
+  //"SQLConnectionString": "Data Source=(local);Initial Catalog=Runtime;Integrated Security=SSPI",
+  //"SQLOrderByClause": " ORDER by {{SQLSequenceField}} DESC",
+  //"SQLQuery": "SELECT TOP {{MaxRecords}} * FROM v_AlarmHistory ",
+  //"SQLSequenceField": "EventStampUTC",
+  //"SQLSequenceFieldDefaultValue": "2001-01-01",
+  //"SQLTimestampField": "EventStampUTC",
+  //"SQLWhereClause": " WHERE {{SQLSequenceField}} > '{{LastSQLSequenceFieldValue}}'",
+
+  // Events
+  //"SplunkAuthorizationToken": "01F140CB-5E72-41B9-B2EB-6E3486E954A9",
+  "SplunkAuthorizationToken": "074AA890-C7E7-4173-8B7A-DD042E718CED",
+  //"SplunkBaseAddress": "http://li1280-175.members.linode.com:8088",
+  "SplunkBaseAddress": "http://localhost:8088",
+  "SplunkSourceData": "WonderwareEvents",
+  "SQLConnectionString": "Data Source=(local);Initial Catalog=Runtime;Integrated Security=SSPI;MultipleActiveResultSets=true",
+  "SQLOrderByClause": " ORDER by {{SQLSequenceField}} DESC",
+  "SQLQuery": "SELECT TOP {{MaxRecords}} * FROM v_EventHistory ",
+  "SQLSequenceField": "EventStampUTC",
+  "SQLSequenceFieldDefaultValue": "2001-01-01",
+  "SQLTimestampField": "EventStampUTC",
+  "CacheWriteValueStringFormat": "yyyy-MM-dd HH:mm:ss.ffffff zz",
+  "TimestampisUTC": "True",
+  "SQLWhereClause": " WHERE {{SQLSequenceField}} > '{{LastSQLSequenceFieldValue}}'",
+  "SplunkEventTimestampFormat": "yyyy-MM-dd HH:mm:ss.ffffff zz"
+}

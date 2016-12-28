@@ -7,8 +7,8 @@
     <ProjectGuid>{24511475-8AF2-4DB0-8BFB-E9E215970ACF}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>aaSQLToSplunk</RootNamespace>
-    <AssemblyName>aaSQLToSplunk</AssemblyName>
+    <RootNamespace>SQLtoSplunkHTTP</RootNamespace>
+    <AssemblyName>SQLtoSplunkHTTP</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -63,6 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <Content Include="LICENSE.txt" />
     <None Include="log.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

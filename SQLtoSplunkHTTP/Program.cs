@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Andrew Robinson. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Data;
@@ -106,7 +109,7 @@ namespace aaSQLToSplunk
         
         #endregion
 
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
 
             // Setup logging
@@ -119,95 +122,108 @@ namespace aaSQLToSplunk
 
                 #region Argument Options
 
-                var app = new CommandLineApplication(false)
+                var app = new CommandLineApplication(throwOnUnexpectedArg: false)
                 {
-                    Name = "aaSQLToSplunk",
-                    Description = "SQL Server to Splunk Forwarder"
+                    Name = "SQLToSplunkHTTP",
+                    Description = "Command line application meant to forward records from a SQL Server Database to a Splunk HTTP collector",
+                    FullName = "SQL Server to Splunk HTTP Collector"      
                 };
                 
                 // Define app Options; 
-                var helpOption = app.HelpOption("-?|-h|--help");
-                var optionsFilePath = app.Option("-o|--optionsfile <PATH>", "Path to options file", CommandOptionType.SingleValue);
+                app.HelpOption("-?| -h| --help");
+                var optionsFilePathOption = app.Option("-o| --optionsfile <PATH>", "Path to options file", CommandOptionType.SingleValue);
+
+                //CommandOption VersionOption(string template, Func<string> shortFormVersionGetter, Func<string> longFormVersionGetter = null);
+
 
                 app.OnExecute(() =>
                 {
-                    if(helpOption.HasValue())
-                    {
-                        Environment.Exit(0);
-                        return 0;
-                    }
-                    
-                    try
-                    {
-                        string optionsPath = optionsFilePath.Value();
-                        if (string.IsNullOrEmpty(optionsPath))
-                        {
-                            optionsPath = "options.json";
-                        }
+                    //if (helpOption.HasValue())
+                    //{
+                    //    app.ShowHelp();
+                    //    return 0;
+                    //}
 
-                        if (System.IO.File.Exists(optionsPath))
+                    //else
+                    //{
+                        //Load runtime options
+                        RuntimeOptions = GetOptions(optionsFilePathOption);
+
+                        // Setup the SplunkHTTPClient
+                        SplunkHTTPClient = new SplunkHTTP(log, RuntimeOptions.SplunkAuthorizationToken, RuntimeOptions.SplunkBaseAddress, RuntimeOptions.SplunkClientID);
+
+                        //Eat any SSL errors
+                        // TODO : Test this feature
+                        ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) =>
                         {
-                            RuntimeOptions = JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText(optionsPath));
-                        }
-                        else
-                        {
-                            log.WarnFormat("Specified options file {0} does not exist. Loading default values.", optionsPath);
-                            RuntimeOptions = new OptionsStruct();
-                        }
-                    }
-                    catch(Exception ex)
-                    {
-                        RuntimeOptions = new OptionsStruct();
-                        log.Error(ex);
-                    }
-                    
-                    return 0;
-                }
-                );
-                
-                app.Execute(args);
+                            return RuntimeOptions.SplunkIgnoreSSLErrors;
+                        };
+
+                        // Configure Timers
+                        readTimer = new Timer(RuntimeOptions.ReadInterval);
+                        readTimer.Elapsed += ReadTimer_Elapsed;
+
+                        //Start Timers
+                        readTimer.Start();
+
+                        Console.WriteLine("Test");
+                        Console.Read();
+                        return 0;
+                });
+
+                app.Command("clearcache", c =>
+                 {
+                     c.OnExecute(() =>
+                     {
+                         //Load runtime options
+                         RuntimeOptions = GetOptions(optionsFilePathOption);
+
+                         log.InfoFormat("Deleting cache file {0}", CacheFileName);
+                         System.IO.File.Delete(CacheFileName);
+
+                         return 0;
+                     });
+                 });
+
+
+                log.DebugFormat("Arguments Specified");
+                log.Debug(JsonConvert.SerializeObject(args));
+                return app.Execute(args);
                 
                 #endregion
-
-
-                //// Parse Arguments
-                //CommandLineApplication commandLineApplication = new CommandLineApplication(throwOnUnexpectedArg: false);
-                ////CommandArgument names = null;
-
-                //CommandOption optionsfilename = commandLineApplication.Option("-o |--optionsfilename <greeting>", "Options file name.  If full path is not specified then file is assumed to be in same folder with EXE",CommandOptionType.SingleValue);                
-                //commandLineApplication.HelpOption("-? | -h | --help");
-
-                //commandLineApplication.OnExecute(() =>
-                //{
-                //    RuntimeOptions = JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText(optionsfilename));
-                //});
-                //commandLineApplication.Execute(args);
-
-                // Setup the SplunkHTTPClient
-                SplunkHTTPClient = new SplunkHTTP(log, RuntimeOptions.SplunkAuthorizationToken, RuntimeOptions.SplunkBaseAddress, RuntimeOptions.SplunkClientID);
-                
-                //Eat any SSL errors
-                // TODO : Test this feature
-                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) =>
-                {
-                    return RuntimeOptions.SplunkIgnoreSSLErrors;
-                };
-
-                // Configure Timers
-                readTimer = new Timer(RuntimeOptions.ReadInterval);
-                readTimer.Elapsed += ReadTimer_Elapsed;
-
-                //Start Timers
-                readTimer.Start();
-
             }
             catch (Exception ex)
             {
                 log.Error(ex);
+                return -1;
             }
 
-            //Prevent the console from closing
-            Console.Read();
+
+        }
+
+        private static OptionsStruct GetOptions(CommandOption optionsFilePathOption)
+        {
+            try
+            {
+                var optionsPath = optionsFilePathOption.Value() ?? "options.json";
+
+                log.DebugFormat("Using options file {0}", optionsPath);
+
+                if (System.IO.File.Exists(optionsPath))
+                {
+                    return JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText(optionsPath));
+                }
+                else
+                {
+                    log.WarnFormat("Specified options file {0} does not exist. Loading default values.", optionsPath);
+                    return new OptionsStruct();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex);
+                return new OptionsStruct();
+            }
         }
 
         private static void ReadTimer_Elapsed(object sender, ElapsedEventArgs e)
