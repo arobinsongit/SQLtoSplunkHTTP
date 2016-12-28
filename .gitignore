@@ -244,3 +244,4 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 /SQLtoSplunkHTTP/options.json
+/SQLtoSplunkHTTP/options - Copy.json

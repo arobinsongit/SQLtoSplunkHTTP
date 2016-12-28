@@ -63,7 +63,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <Content Include="LICENSE.txt" />
+    <None Include="CONTRIBUTING.MD" />
+    <None Include="LICENSE" />
     <None Include="log.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
