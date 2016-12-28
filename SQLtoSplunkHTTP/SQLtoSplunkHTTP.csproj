@@ -63,8 +63,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="CONTRIBUTING.MD" />
-    <None Include="LICENSE" />
     <None Include="log.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -75,7 +73,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
-    <None Include="README.MD" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\DataReaderExtensions.cs" />
