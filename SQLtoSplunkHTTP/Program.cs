@@ -2,13 +2,10 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Data;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Net.Http;
 using System.Timers;
 using Newtonsoft.Json;
 using SQLtoSplunkHTTP.Helpers;
@@ -18,7 +15,6 @@ using System.Globalization;
 using SplunkHTTPUtility;
 using Microsoft.Extensions.CommandLineUtils;
 using System.Reflection;
-using System.Diagnostics;
 
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "log.config", Watch = true)]
 namespace SQLtoSplunkHTTP
@@ -48,14 +44,14 @@ namespace SQLtoSplunkHTTP
         private static Timer readTimer;
         
         //Runtime Options Object
-        private static OptionsStruct runtimeOptions;
-        internal static OptionsStruct RuntimeOptions
+        private static Options runtimeOptions;
+        internal static Options RuntimeOptions
         {
             get
             {
                 if (runtimeOptions == null)
                 {
-                    runtimeOptions = JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText("options.json"));
+                    runtimeOptions = JsonConvert.DeserializeObject<Options>(System.IO.File.ReadAllText("options.json"));
                 }
 
                 return runtimeOptions;
@@ -135,8 +131,7 @@ namespace SQLtoSplunkHTTP
                 app.VersionOption("-v| --version", assembly.GetName().Version.MajorRevision.ToString(), assembly.GetName().Version.ToString());
 
                 var optionsFilePathOption = app.Option("-o| --optionsfile <PATH>", "Path to options file (Optional)", CommandOptionType.SingleValue);
-
-
+                
         app.OnExecute(() =>
                 {
                     //Load runtime options
@@ -152,11 +147,13 @@ namespace SQLtoSplunkHTTP
                         return RuntimeOptions.SplunkIgnoreSSLErrors;
                     };
 
-                    // Configure Timers
+                    // Configure Timer
                     readTimer = new Timer(RuntimeOptions.ReadInterval);
+                    
+                    // Create delegate to handle elapsed time event
                     readTimer.Elapsed += ReadTimer_Elapsed;
 
-                    //Start Timers
+                    //Start Timer
                     readTimer.Start();
 
                     //Prevent console from exiting
@@ -210,7 +207,7 @@ namespace SQLtoSplunkHTTP
                             }                
                         }
                         
-                        System.IO.File.WriteAllText(fileName, JsonConvert.SerializeObject(new OptionsStruct()));
+                        System.IO.File.WriteAllText(fileName, JsonConvert.SerializeObject(new Options(),Formatting.Indented));
 
                         log.InfoFormat("Wrote default options to {0}", fileName);
 
@@ -234,7 +231,7 @@ namespace SQLtoSplunkHTTP
             }
         }
 
-        private static OptionsStruct ReadOptionsFile(CommandOption optionsFilePathOption)
+        private static Options ReadOptionsFile(CommandOption optionsFilePathOption)
         {
             try
             {
@@ -244,18 +241,18 @@ namespace SQLtoSplunkHTTP
 
                 if (System.IO.File.Exists(optionsPath))
                 {
-                    return JsonConvert.DeserializeObject<OptionsStruct>(System.IO.File.ReadAllText(optionsPath));
+                    return JsonConvert.DeserializeObject<Options>(System.IO.File.ReadAllText(optionsPath));
                 }
                 else
                 {
                     log.WarnFormat("Specified options file {0} does not exist. Loading default values.", optionsPath);
-                    return new OptionsStruct();
+                    return new Options();
                 }
             }
             catch (Exception ex)
             {
                 log.Error(ex);
-                return new OptionsStruct();
+                return new Options();
             }
         }
 
@@ -331,7 +328,7 @@ namespace SQLtoSplunkHTTP
         /// <param name="dataTable">Transmitted records</param>
         /// <param name="cacheFileName">Filename to write cache data to</param>
         /// <param name="runtimeOptions">Runtime Options Object</param>
-        private static void WriteCacheFile(DataTable dataTable, string cacheFileName, OptionsStruct runtimeOptions)
+        private static void WriteCacheFile(DataTable dataTable, string cacheFileName, Options runtimeOptions)
         {
             string cacheWriteValue;
 
@@ -352,7 +349,7 @@ namespace SQLtoSplunkHTTP
         /// </summary>
         /// <param name="runtimeOptions">Runtime Options object</param>
         /// <returns>String representing SQL Query based on provided runtime options</returns>
-        private static string GetSqlQuery(OptionsStruct runtimeOptions)
+        private static string GetSqlQuery(Options runtimeOptions)
         {
             string returnValue;
             string cachedSqlSequenceFieldValue;
@@ -409,7 +406,7 @@ namespace SQLtoSplunkHTTP
         /// <summary>
         /// Slow down the timer by doubling the interval up to MaximumReadInterval
         /// </summary>
-        private static void IncrementTimerBackoff(ref Timer readTimer, OptionsStruct runtimeOptions)
+        private static void IncrementTimerBackoff(ref Timer readTimer, Options runtimeOptions)
         {
             try
             {
@@ -435,7 +432,7 @@ namespace SQLtoSplunkHTTP
         /// <summary>
         /// Slow down the timer by doubling the interval up to MaximumReadInterval
         /// </summary>
-        private static void ClearTimerBackoff(ref Timer readTimer, OptionsStruct runtimeOptions)
+        private static void ClearTimerBackoff(ref Timer readTimer, Options runtimeOptions)
         {
             try
             {                

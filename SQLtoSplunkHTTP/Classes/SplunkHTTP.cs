@@ -122,7 +122,7 @@ namespace SplunkHTTPUtility
         
         public void Setup()
         {
-            Log.Debug("Executing Setup");
+            Log.Debug("Setting up Splunk HTTP Collector");
             Client.BaseAddress = new Uri(SplunkBaseAddress);
             Client.DefaultRequestHeaders.Add("Authorization", "Splunk " + SplunkAuthorizationToken);
         }
