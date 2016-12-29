@@ -140,7 +140,7 @@ namespace SQLtoSplunkHTTP
                     // Setup the SplunkHTTPClient
                     SplunkHTTPClient = new SplunkHTTP(log, RuntimeOptions.SplunkAuthorizationToken, RuntimeOptions.SplunkBaseAddress, RuntimeOptions.SplunkClientID);
 
-                    //Eat any SSL errors
+                    //Eat any SSL errors if configured to do so via options
                     // TODO : Test this feature
                     ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) =>
                     {
@@ -252,7 +252,7 @@ namespace SQLtoSplunkHTTP
             catch (Exception ex)
             {
                 log.Error(ex);
-                return new Options();
+                return null;
             }
         }
 
@@ -270,6 +270,11 @@ namespace SQLtoSplunkHTTP
             {
                 if (sqlConnectionObject.State == ConnectionState.Open)
                 {
+                    if(string.IsNullOrEmpty(query))
+                    {
+                        throw new Exception("Query string is null or empty");
+                    }
+
                     SqlCommand command = new SqlCommand(query, sqlConnectionObject);
 
                     dataTable.Load(command.ExecuteReader());
@@ -309,7 +314,7 @@ namespace SQLtoSplunkHTTP
                 }
                 else
                 {
-                    log.Warn("SQL Connection not Open");
+                    log.Warn("SQL Connection not open");
                 }
             }
             catch (Exception ex)
@@ -351,17 +356,24 @@ namespace SQLtoSplunkHTTP
         /// <returns>String representing SQL Query based on provided runtime options</returns>
         private static string GetSqlQuery(Options runtimeOptions)
         {
-            string returnValue;
+            string query = "";
             string cachedSqlSequenceFieldValue;
             DateTime cachedSqlSequenceFieldValueDateTime;
             DateTimeStyles cacheDateTimeStyle;
-
-            //Get the base query and limit by TOP XX
-            returnValue = runtimeOptions.SQLQuery.Replace("{{MaxRecords}}", runtimeOptions.MaxRecords.ToString());
-
+            
             // Add the where clause if we can get the cached Sequence Field Value
             try
             {
+                query = runtimeOptions.SQLQuery;
+
+                if (string.IsNullOrEmpty(query))
+                {
+                    throw new Exception("SQL Query in options file is empty or null");
+                }
+
+                //Get the base query and limit by TOP XX.  If there is no {{MaxRecords}} component then this statement makes no change to the query
+                query = query.Replace("{{MaxRecords}}", runtimeOptions.MaxRecords.ToString());
+
                 if (File.Exists(CacheFileName))
                 {
                     cachedSqlSequenceFieldValue = File.ReadAllText(CacheFileName) ?? string.Empty;
@@ -387,20 +399,20 @@ namespace SQLtoSplunkHTTP
 
                 if (cachedSqlSequenceFieldValue != string.Empty)
                 {
-                    returnValue += runtimeOptions.SQLWhereClause.Replace("{{SQLSequenceField}}", runtimeOptions.SQLSequenceField).Replace("{{LastSQLSequenceFieldValue}}", cachedSqlSequenceFieldValue);
+                    query += runtimeOptions.SQLWhereClause.Replace("{{SQLSequenceField}}", runtimeOptions.SQLSequenceField).Replace("{{LastSQLSequenceFieldValue}}", cachedSqlSequenceFieldValue);
                 }
+
+                //Finally add the Order By Clause
+                query += runtimeOptions.SQLOrderByClause.Replace("{{SQLSequenceField}}", runtimeOptions.SQLSequenceField);
+
+                log.DebugFormat("SQL Query : {0}", query);
             }
             catch
             {
-                // Do nothing
+                // Do Nothing
             }
-
-            //Finally add the Order By Clause
-            returnValue += runtimeOptions.SQLOrderByClause.Replace("{{SQLSequenceField}}", runtimeOptions.SQLSequenceField);
-
-            log.DebugFormat("SQL Query : {0}", returnValue);
-
-            return returnValue;
+            
+            return query;
         }
 
         /// <summary>
