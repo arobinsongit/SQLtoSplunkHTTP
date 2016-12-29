@@ -1,6 +1,4 @@
-﻿
-
-# SQL to Splunk HTTP
+﻿# SQL to Splunk HTTP
 
 =================
 
@@ -20,7 +18,7 @@ The application can be run with no options or you can view options with the -?/-
 
 ## Testing
 
-No testing written yet.
+No testing written yet.  We plan to use NUnit for a testing framework.
 
 ## TODO List
 
