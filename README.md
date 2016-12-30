@@ -47,7 +47,6 @@ Executing a subcommand looks like this:
 c:\local\SQLtoSplunkHTTP\SQLtoSplunkHTTP\bin\Debug>SQLtoSplunkHTTP.exe clearcache
 Starting c:\local\SQLtoSplunkHTTP\SQLtoSplunkHTTP\bin\Debug\SQLtoSplunkHTTP.exe Version 1.1.0.0
 Deleting cache file WonderwareAlarms-EventStampUTC.txt
-
 ```
 
 To understand the command in more detail utilize a help command line switch in combination with the command like this:
@@ -65,6 +64,7 @@ Options:
 
 ### Running As a Service
 
+Instead of adding the detailed plumbing for allowing the application to run as a service we are testing the use of the [Non-Sucking Service Manager](https://nssm.cc/). My limited testing has shown no issues. One caveat is to make sure `Console` is checked on the `Process` tab.
 
 ### Logs
 
