@@ -68,7 +68,9 @@ Instead of adding the detailed plumbing for allowing the application to run as a
 
 ### Logs
 
+We use [Log4Net](https://logging.apache.org/log4net/) as the logging engine. To manage the log settings you shuold edit the `log.config` file located in the application directory.
 
+For details on log configuration settings see the [Configuration Examples](https://logging.apache.org/log4net/release/config-examples.html) on the Log4Net website.
 
 ## Testing
 
