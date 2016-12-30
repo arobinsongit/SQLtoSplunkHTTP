@@ -91,7 +91,7 @@ Check out the [Contributing](/CONTRIBUTING.MD) file
 
 ## Credit
 
-Thanks to Brian Gilmore (@BrianMGilmore) for pointing me in the direciton of the new HTTP collector.
+Thanks to Brian Gilmore (@BrianMGilmore) for pointing me in the direction of the new HTTP collector.
 
 ## License
 
