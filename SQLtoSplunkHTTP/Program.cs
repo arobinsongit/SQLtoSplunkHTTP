@@ -107,7 +107,8 @@ namespace SQLtoSplunkHTTP
             }
         }
 
-        internal static string CacheFileName
+
+        internal static string CacheFilename
         {
             get
             {
@@ -197,7 +198,7 @@ namespace SQLtoSplunkHTTP
 
                      c.OnExecute(() =>
                      {
-                         return ClearCache(RuntimeOptions.CacheFilename);                         
+                         return ClearCache(CacheFilename);                         
                      });
                  });
 
@@ -206,7 +207,7 @@ namespace SQLtoSplunkHTTP
                     c.Description = "Create a default options.json file";
                     c.HelpOption("-?| -h| --help");
 
-                    var overWriteOption = c.Option("-o| --overwrite", "Overwrite existing options.json file",CommandOptionType.NoValue);
+                    var overWriteOption = c.Option("-o| --overwrite", "Overwrite file if it exists",CommandOptionType.NoValue);
                     var fileNameOption = c.Option("-f| --filename <PATH>", "Name of options file (Optional)", CommandOptionType.SingleValue);
                     
                     c.OnExecute(() =>
@@ -370,7 +371,7 @@ namespace SQLtoSplunkHTTP
                         if (result.StatusCode == HttpStatusCode.OK)
                         {
                             // Write the last sequence value to the cache value named for the SQLSequence Field.  Order the result set by the sequence field then select the first record
-                            WriteCacheFile(dataTable, CacheFileName, RuntimeOptions);
+                            WriteCacheFile(dataTable, CacheFilename, RuntimeOptions);
 
                             if(ReadTimer.Interval != RuntimeOptions.ReadInterval)
                             {
@@ -448,9 +449,9 @@ namespace SQLtoSplunkHTTP
                 //Get the base query and limit by TOP XX.  If there is no {{MaxRecords}} component then this statement makes no change to the query
                 query = query.Replace("{{MaxRecords}}", runtimeOptions.MaxRecords.ToString());
 
-                if (File.Exists(CacheFileName))
+                if (File.Exists(CacheFilename))
                 {
-                    cachedSqlSequenceFieldValue = File.ReadAllText(CacheFileName) ?? string.Empty;
+                    cachedSqlSequenceFieldValue = File.ReadAllText(CacheFilename) ?? string.Empty;
                 }
                 else
                 {

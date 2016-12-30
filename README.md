@@ -14,7 +14,63 @@ Working with my contacts at Splunk I was directed to the new HTTP Event Collecto
 
 ## Usage
 
-The application can be run with no options or you can view options with the -?/-h/--help command line switches.  I have also done some very basic testing using NSSM to run the application as a service with positive results.
+The application is a single EXE that can be run from the command line with appropriate command line switches.  If no command line switches are provided the application looks for an options.json file in the local directory to read in configuration.
+
+### Command Line Switches
+
+From the command line execute the application EXE with any of the following command line switches: -?/-h/--help.  This will display a list of the available command line switches as well as subcommands.
+
+```batchfile
+c:\local\SQLtoSplunkHTTP\SQLtoSplunkHTTP\bin\Debug>SQLtoSplunkHTTP.exe -?
+
+SQL Server to Splunk HTTP Collector 0
+
+Usage: SQLToSplunkHTTP [options] [command]
+
+Options:
+  -?| -h| --help            Show help information
+  -v| --version             Show version information
+  -o| --optionsfile <PATH>  Path to options file (Optional)
+
+Commands:
+  clearcache                Deletes the current cache file
+  createdefaultoptionsfile  Create a default options.json file
+
+Use "SQLToSplunkHTTP [command] --help" for more information about a command.
+```
+
+### Commands
+
+Commands provide a way to run a specific function contained in the application.
+
+Executing a subcommand looks like this:
+
+```batchfile
+c:\local\SQLtoSplunkHTTP\SQLtoSplunkHTTP\bin\Debug>SQLtoSplunkHTTP.exe clearcache
+Starting c:\local\SQLtoSplunkHTTP\SQLtoSplunkHTTP\bin\Debug\SQLtoSplunkHTTP.exe Version 1.1.0.0
+Deleting cache file WonderwareAlarms-EventStampUTC.txt
+
+```
+
+To understand the command in more detail utilize a help command line switch in combination with the command like this:
+
+```batchfile
+c:\local\SQLtoSplunkHTTP\SQLtoSplunkHTTP\bin\Debug>SQLtoSplunkHTTP.exe createdefaultoptionsfile -?
+
+Usage: SQLToSplunkHTTP createdefaultoptionsfile [options]
+
+Options:
+  -?| -h| --help         Show help information
+  -o| --overwrite        Overwrite existing options.json file
+  -f| --filename <PATH>  Name of options file (Optional)
+```
+
+### Running As a Service
+
+
+### Logs
+
+
 
 ## Testing
 
