@@ -246,3 +246,6 @@ ModelManifest.xml
 /SQLtoSplunkHTTP/options.json
 /SQLtoSplunkHTTP/options - Copy.json
 /SQLtoSplunkHTTP/options2.json
+/SQLtoSplunkHTTP/options-galaxychange.json
+/SQLtoSplunkHTTP/options-events.json
+/SQLtoSplunkHTTP/options-alarms.json
