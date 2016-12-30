@@ -1,7 +1,5 @@
 ﻿# SQL to Splunk HTTP
 
-=================
-
 A console application to read data from a Microsoft SQL Server database and forward to a Splunk Instance via the HTTP Collector.
 
 ## Motivation
