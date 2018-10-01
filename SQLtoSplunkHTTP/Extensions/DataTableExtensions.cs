@@ -23,7 +23,7 @@ namespace SQLtoSplunkHTTP.Helpers
         public static string ToKVP(this DataTable dataTable, String additionalKVPValues = "", String timeStampField = "", string timestampFormat = "")
         {
             var returnValue = new StringBuilder();
-
+            
             if(timeStampField.Length > 0 && timestampFormat.Length == 0)
             {
                 throw new Exception("A timestamp format must be provided whenever a timestamp field is specified");
@@ -33,28 +33,29 @@ namespace SQLtoSplunkHTTP.Helpers
             {
                 foreach (DataRow row in dataTable.Rows)
                 {
+                    var lineValue = new StringBuilder();
+                    var timeStampValue = new StringBuilder();
+
                     foreach (DataColumn column in dataTable.Columns)
                     {
-                        returnValue.AppendFormat("{0}=\"{1}\", ", column.ColumnName, row[column.Ordinal]);
+                        lineValue.AppendFormat("{0}=\"{1}\", ", column.ColumnName, row[column.Ordinal]);
 
-                        // Add a timestamp field if this is the time column
+                        // Add a timestamp field if this is the time column.  Add this column to the front for clarity
                         if (column.ColumnName == timeStampField)
                         {
-                            returnValue.AppendFormat("{0}=\"{1}\", ", "timestamp", DateTime.Parse(row[column.Ordinal].ToString()).ToString(timestampFormat));
+                            lineValue.AppendFormat("{0}=\"{1}\", ", "timestamp", DateTime.Parse(row[column.Ordinal].ToString()).ToString(timestampFormat));
                         }
                     }
 
                     // Append the additional value or trim the tailing ' ,'                    
                     if (additionalKVPValues.Length > 0)
                     {
-                        returnValue.Append(additionalKVPValues);
+                        lineValue.Append(additionalKVPValues);
                     }
 
-                    //Trim any trailing commas
-                    returnValue.Remove(returnValue.Length-2, 1);
-                    
-                    returnValue.AppendLine();
+                    lineValue.AppendLine();
 
+                    returnValue.Append(lineValue);
                 }
             }
 
