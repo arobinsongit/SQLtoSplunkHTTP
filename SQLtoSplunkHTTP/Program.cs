@@ -25,6 +25,9 @@ namespace SQLtoSplunkHTTP
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        private static bool _isExecutingSQLCommand = false;
+        private static readonly object _updateisExecutingSQLCommand = new object();
+
         // HTTP Client for data transmission to Splunk
         private static SplunkHTTP splunkHTTPClient;
         internal static SplunkHTTP SplunkHTTPClient
@@ -148,9 +151,6 @@ namespace SQLtoSplunkHTTP
 
         static int Main(string[] args)
         {
-            // Setup logging
-            log4net.Config.BasicConfigurator.Configure();
-
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
@@ -344,6 +344,7 @@ namespace SQLtoSplunkHTTP
         {
             DataTable dataTable = new DataTable();
             string kvpValue = "";
+            var localisExecutingSQLCommand = false;
 
             try
             {
@@ -354,50 +355,79 @@ namespace SQLtoSplunkHTTP
                         throw new Exception("Query string is null or empty");
                     }
                     
-                    SqlCommand command = new SqlCommand(query, sqlConnectionObject);
-
-                    dataTable.Load(command.ExecuteReader());
-
-                    log.DebugFormat("{0} rows retrieved", dataTable.Rows.Count);
-
-                    if (dataTable.Rows.Count > 0)
+                    lock(_updateisExecutingSQLCommand)
                     {
-                        //Build the additional KVP values to Append
-                        var additionalKVPValues = new StringBuilder();
-
-                        additionalKVPValues.AppendFormat("{0}=\"{1}\", ", "SourceHost", RuntimeOptions.SplunkSourceHost);
-                        additionalKVPValues.AppendFormat("{0}=\"{1}\", ", "SourceData", RuntimeOptions.SplunkSourceData);
-
-                        //Get the KVP string for the records
-                        kvpValue = dataTable.ToKVP(additionalKVPValues.ToString(), RuntimeOptions.SQLTimestampField, RuntimeOptions.SplunkEventTimestampFormat);
-
-                        //Transmit the records
-                        var result = SplunkHTTPClient.TransmitValues(kvpValue);
-
-                        log.DebugFormat("Transmit Values Result - {0}", result);
-
-                        //If successful then write the last sequence value to disk
-                        if (result.StatusCode == HttpStatusCode.OK)
-                        {
-
-                            log.DebugFormat("Writing Cache File");
-
-                            // Write the last sequence value to the cache value named for the SQLSequence Field.  Order the result set by the sequence field then select the first record
-                            WriteCacheFile(dataTable, CacheFilename, RuntimeOptions);
-
-                            if(ReadTimer.Interval != RuntimeOptions.ReadInterval)
-                            {
-                                //Reset timer interval
-                                ClearTimerBackoff(ReadTimer, RuntimeOptions);
-                            }                            
-                        }
-                        else
-                        {
-                            // Implement a timer backoff so we don't flood the endpoint
-                            IncrementTimerBackoff(ReadTimer, RuntimeOptions);
-                            log.WarnFormat("HTTP Transmission not OK - {0}",result);
-                        }
+                        localisExecutingSQLCommand = _isExecutingSQLCommand;
                     }
+
+                    log.DebugFormat("localisExecutingSQLCommand = {0}", localisExecutingSQLCommand);
+                    
+                    if (!localisExecutingSQLCommand)
+                    {
+                        SqlCommand command = new SqlCommand(query, sqlConnectionObject);
+
+                        lock (_updateisExecutingSQLCommand)
+                        {
+                            _isExecutingSQLCommand = true;
+                        }
+
+                        dataTable.Load(command.ExecuteReader());
+
+                        lock (_updateisExecutingSQLCommand)
+                        {
+                            _isExecutingSQLCommand = false;
+                        }
+
+                        log.InfoFormat("{0} rows retrieved", dataTable.Rows.Count);
+
+                        if (dataTable.Rows.Count > 0)
+                        {
+                            //Build the additional KVP values to Append
+                            var additionalKVPValues = new StringBuilder();
+
+                            additionalKVPValues.AppendFormat("{0}=\"{1}\", ", "SourceHost", RuntimeOptions.SplunkSourceHost);
+                            additionalKVPValues.AppendFormat("{0}=\"{1}\" ", "SourceData", RuntimeOptions.SplunkSourceData);
+
+                            //Get the KVP string for the records
+                            kvpValue = dataTable.ToKVP(additionalKVPValues.ToString(), RuntimeOptions.SQLTimestampField, RuntimeOptions.SplunkEventTimestampFormat);
+
+                            log.DebugFormat("KVP Values");
+                            log.DebugFormat("{0}", kvpValue);
+
+                            //Transmit the records
+                            var result = SplunkHTTPClient.TransmitValues(kvpValue);
+
+                            log.DebugFormat("Transmit Values Result - {0}", result);
+
+                            //If successful then write the last sequence value to disk
+                            if (result.StatusCode == HttpStatusCode.OK)
+                            {
+
+                                log.DebugFormat("Writing Cache File");
+
+                                // Write the last sequence value to the cache value named for the SQLSequence Field.  Order the result set by the sequence field then select the first record
+                                WriteCacheFile(dataTable, CacheFilename, RuntimeOptions);
+
+                                if (ReadTimer.Interval != RuntimeOptions.ReadInterval)
+                                {
+                                    //Reset timer interval
+                                    ClearTimerBackoff(ReadTimer, RuntimeOptions);
+                                }
+                            }
+                            else
+                            {
+                                // Implement a timer backoff so we don't flood the endpoint
+                                IncrementTimerBackoff(ReadTimer, RuntimeOptions);
+                                log.WarnFormat("HTTP Transmission not OK - {0}", result);
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        log.DebugFormat("SQL command already executing.  Skipping this cycle.");
+                    }
+
                 }
                 else
                 {
@@ -481,7 +511,7 @@ namespace SQLtoSplunkHTTP
 
                 if (DateTime.TryParseExact(cachedSqlSequenceFieldValue, runtimeOptions.CacheWriteValueStringFormat, CultureInfo.InvariantCulture, cacheDateTimeStyle, out cachedSqlSequenceFieldValueDateTime))
                 {
-                    cachedSqlSequenceFieldValue = cachedSqlSequenceFieldValueDateTime.AddMilliseconds(runtimeOptions.CacheWriteValueTimestampMillisecondsAdd).ToString("yyyy-MM-dd HH:mm:ss.ffffff");
+                    cachedSqlSequenceFieldValue = cachedSqlSequenceFieldValueDateTime.AddMilliseconds(runtimeOptions.CacheWriteValueTimestampMillisecondsAdd).ToString(runtimeOptions.CacheWriteValueStringFormat);
                 }
 
                 if (cachedSqlSequenceFieldValue != string.Empty)
