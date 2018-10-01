@@ -95,7 +95,14 @@ namespace SQLtoSplunkHTTP
                 if (sqlConnectionObject.State != ConnectionState.Open)
                 {
                     log.Info("Opening SQL connection");
-                    sqlConnectionObject.Open();
+                    try
+                    {
+                        sqlConnectionObject.Open();
+                    }
+                    catch(Exception ex)
+                    {
+                        log.Error(ex);
+                    }
                 }
 
                 return sqlConnectionObject;
@@ -346,7 +353,7 @@ namespace SQLtoSplunkHTTP
                     {
                         throw new Exception("Query string is null or empty");
                     }
-
+                    
                     SqlCommand command = new SqlCommand(query, sqlConnectionObject);
 
                     dataTable.Load(command.ExecuteReader());
@@ -365,11 +372,16 @@ namespace SQLtoSplunkHTTP
                         kvpValue = dataTable.ToKVP(additionalKVPValues.ToString(), RuntimeOptions.SQLTimestampField, RuntimeOptions.SplunkEventTimestampFormat);
 
                         //Transmit the records
-                        var result = SplunkHTTPClient.TransmitValues(kvpValue).Result;
+                        var result = SplunkHTTPClient.TransmitValues(kvpValue);
+
+                        log.DebugFormat("Transmit Values Result - {0}", result);
 
                         //If successful then write the last sequence value to disk
                         if (result.StatusCode == HttpStatusCode.OK)
                         {
+
+                            log.DebugFormat("Writing Cache File");
+
                             // Write the last sequence value to the cache value named for the SQLSequence Field.  Order the result set by the sequence field then select the first record
                             WriteCacheFile(dataTable, CacheFilename, RuntimeOptions);
 
@@ -383,7 +395,7 @@ namespace SQLtoSplunkHTTP
                         {
                             // Implement a timer backoff so we don't flood the endpoint
                             IncrementTimerBackoff(ReadTimer, RuntimeOptions);
-                            log.WarnFormat("HTTP Transmission not OK {0}",result);
+                            log.WarnFormat("HTTP Transmission not OK - {0}",result);
                         }
                     }
                 }

@@ -68,15 +68,6 @@
     <None Include="log.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="options-alarms.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="options-events.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="options-galaxychange.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="options - example.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -90,20 +81,20 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>nssm stop SQLtoSplunkHTTP
-nssm stop SQLtoSplunkHTTP2
-nssm stop SQLtoSplunkHTTP3
-del /s /f /q "$(TargetDir)"
-del /s /f /q "$(ProjectDir)bin\Debug - Copy\"
-del /s /f  /q "$(ProjectDir)bin\Debug - Copy (2)\"
+    <PreBuildEvent>REM nssm stop SQLtoSplunkHTTP
+REM nssm stop SQLtoSplunkHTTP2
+REM nssm stop SQLtoSplunkHTTP3
+REM del /s /f /q "$(TargetDir)"
+REM del /s /f /q "$(ProjectDir)bin\Debug - Copy\"
+REM del /s /f  /q "$(ProjectDir)bin\Debug - Copy (2)\"
 </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>xcopy /E /Y "$(TargetDir)*.*"  "$(ProjectDir)bin\Debug - Copy\"
-xcopy /E /Y "$(TargetDir)*.*"  "$(ProjectDir)bin\Debug - Copy (2)\"
-nssm start SQLtoSplunkHTTP
-nssm start SQLtoSplunkHTTP2
-nssm start SQLtoSplunkHTTP3</PostBuildEvent>
+    <PostBuildEvent>REM xcopy /E /Y "$(TargetDir)*.*"  "$(ProjectDir)bin\Debug - Copy\"
+REM xcopy /E /Y "$(TargetDir)*.*"  "$(ProjectDir)bin\Debug - Copy (2)\"
+REM nssm start SQLtoSplunkHTTP
+REM nssm start SQLtoSplunkHTTP2
+REM nssm start SQLtoSplunkHTTP3</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

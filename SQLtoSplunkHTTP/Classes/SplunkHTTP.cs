@@ -131,14 +131,16 @@ namespace SplunkHTTPUtility
         /// Transmit the KVP values via HTTP to the Splunk HTTP Raw Collector
         /// </summary>
         /// <param name="kvpValues"></param>
-        public async Task<HttpResponseMessage> TransmitValues (string kvpValues)
+        //public async Task<HttpResponseMessage> TransmitValues (string kvpValues)
+        public HttpResponseMessage TransmitValues (string kvpValues)        
         {
             var responseMessage = new HttpResponseMessage();
+            string uri = "/services/collector/raw?channel=" + ClientID;
 
             try
             {
-                Log.DebugFormat("Transmitting {0} bytes", System.Text.ASCIIEncoding.Unicode.GetByteCount(kvpValues));
-                responseMessage = await Client.PostAsync("/services/collector/raw?channel=" + ClientID, new StringContent(kvpValues));
+                Log.DebugFormat("Transmitting {0} bytes to {1}", System.Text.ASCIIEncoding.Unicode.GetByteCount(kvpValues), SplunkBaseAddress + uri);
+                responseMessage = Client.PostAsync(uri, new StringContent(kvpValues)).Result;
             }
             catch (Exception ex)
             {

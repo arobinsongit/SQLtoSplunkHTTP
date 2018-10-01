@@ -82,6 +82,8 @@ namespace SQLtoSplunkHTTP
 
         [Description("Timestamp format for writing event timestamp to Splunk - can be any legal format that can be used with string.format")]
         public string SplunkEventTimestampFormat = "yyyy-MM-dd HH:mm:ss.ffffff zz";
+
+        [Description("Filename for the cache file written to disk to persist details about the last record successfully transmitted to SPLUNNK")]
         public string CacheFilename;
     }
 }

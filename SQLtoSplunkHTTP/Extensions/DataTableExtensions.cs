@@ -50,6 +50,9 @@ namespace SQLtoSplunkHTTP.Helpers
                         returnValue.Append(additionalKVPValues);
                     }
 
+                    //Trim any trailing commas
+                    returnValue.Remove(returnValue.Length-2, 1);
+                    
                     returnValue.AppendLine();
 
                 }
