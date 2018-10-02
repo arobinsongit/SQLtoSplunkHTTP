@@ -71,7 +71,7 @@ namespace SQLtoSplunkHTTP
             {
                 if (runtimeOptions == null)
                 {
-                    runtimeOptions = JsonConvert.DeserializeObject<Options>(System.IO.File.ReadAllText("options.json"));
+                    runtimeOptions = ReadOptionsFile(OptionsFilePathOption);
                 }
 
                 return runtimeOptions;
@@ -117,18 +117,25 @@ namespace SQLtoSplunkHTTP
             }
         }
 
+        internal static string GetExecutingDirectoryName()
+        {
+            var location = new Uri(Assembly.GetEntryAssembly().GetName().CodeBase);
+            return new FileInfo(location.AbsolutePath).Directory.FullName;
+        }
 
         internal static string CacheFilename
         {
             get
             {
+                var directory = GetExecutingDirectoryName();
+
                 if (string.IsNullOrEmpty(RuntimeOptions.CacheFilename))
                 {
-                    return RuntimeOptions.SplunkSourceData + "-" + RuntimeOptions.SQLSequenceField + ".txt";
+                    return Path.Combine(directory, RuntimeOptions.SplunkSourceData + "-" + RuntimeOptions.SQLSequenceField + ".txt");
                 }
                 else
                 {
-                    return RuntimeOptions.CacheFilename;
+                    return Path.Combine(directory,RuntimeOptions.CacheFilename);
                 }
             }
         }
@@ -227,7 +234,7 @@ namespace SQLtoSplunkHTTP
                 log.DebugFormat("Startup Arguments {0}",JsonConvert.SerializeObject(args));
 
                 //Always make sure we load runtime options first
-                RuntimeOptions = ReadOptionsFile(OptionsFilePathOption);
+                //RuntimeOptions = ReadOptionsFile(OptionsFilePathOption);
                 
                 // Run the application with arguments
                 return app.Execute(args);
@@ -311,7 +318,7 @@ namespace SQLtoSplunkHTTP
             {
                 var optionsPath = optionsFilePathOption.Value() ?? "options.json";
 
-                log.DebugFormat("Using options file {0}", optionsPath);
+                log.InfoFormat("Using options file {0}", optionsPath);
 
                 if (System.IO.File.Exists(optionsPath))
                 {
