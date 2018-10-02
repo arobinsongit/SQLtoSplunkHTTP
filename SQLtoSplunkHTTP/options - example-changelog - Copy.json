@@ -1,0 +1,16 @@
+﻿{
+  // An example options file
+  "SplunkAuthorizationToken": "00000000-0000-0000-0000-00000000",
+  "SplunkBaseAddress": "http://yoursplunkserver:8088",
+  "SplunkSourceData": "ArchestraGalaxyChangeLog",
+  "SQLConnectionString": "Server=localhost;Database=TEST1;Integrated Security=SSPI;MultipleActiveResultSets=true",
+  "SQLOrderByClause": " ORDER by {{SQLSequenceField}} DESC",
+  "SQLQuery": "SELECT TOP {{MaxRecords}} dbo.gobject.tag_name, dbo.gobject.contained_name, dbo.gobject.is_template, dbo.gobject.hierarchical_name, dbo.gobject_change_log.gobject_change_log_id, dbo.gobject_change_log.gobject_id, dbo.gobject_change_log.change_date, dbo.gobject_change_log.operation_id, dbo.gobject_change_log.user_comment, dbo.gobject_change_log.configuration_version, dbo.gobject_change_log.user_profile_name, dbo.lookup_operation.operation_code, dbo.lookup_operation.operation_name FROM dbo.gobject LEFT OUTER JOIN dbo.gobject_change_log ON dbo.gobject.gobject_id = dbo.gobject_change_log.gobject_id LEFT OUTER JOIN dbo.lookup_operation ON dbo.gobject_change_log.operation_id = dbo.lookup_operation.operation_id",
+  "SQLSequenceField": "gobject_change_log_id",
+  "SQLSequenceFieldDefaultValue": "1",
+  "SQLTimestampField": "change_date",
+  "SQLWhereClause": " WHERE {{SQLSequenceField}} > '{{LastSQLSequenceFieldValue}}'",
+  "SplunkEventTimestampFormat": "yyyy-MM-dd HH:mm:ss.ffffff zz",
+  "MaxRecords": "100",
+  "ReadInterval": "10000"
+}
