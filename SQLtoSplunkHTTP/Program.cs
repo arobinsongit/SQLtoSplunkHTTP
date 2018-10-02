@@ -28,6 +28,12 @@ namespace SQLtoSplunkHTTP
         private static bool _isExecutingSQLCommand = false;
         private static readonly object _updateisExecutingSQLCommand = new object();
 
+        internal static string GetExecutingDirectoryName()
+        {
+            var location = new Uri(Assembly.GetEntryAssembly().GetName().CodeBase);
+            return new FileInfo(location.AbsolutePath).Directory.FullName;
+        }
+
         // HTTP Client for data transmission to Splunk
         private static SplunkHTTP splunkHTTPClient;
         internal static SplunkHTTP SplunkHTTPClient
@@ -115,12 +121,6 @@ namespace SQLtoSplunkHTTP
             {
                 sqlConnectionObject = value;
             }
-        }
-
-        internal static string GetExecutingDirectoryName()
-        {
-            var location = new Uri(Assembly.GetEntryAssembly().GetName().CodeBase);
-            return new FileInfo(location.AbsolutePath).Directory.FullName;
         }
 
         internal static string CacheFilename
@@ -316,7 +316,8 @@ namespace SQLtoSplunkHTTP
         {
             try
             {
-                var optionsPath = optionsFilePathOption.Value() ?? "options.json";
+                var optionsFilename = optionsFilePathOption.Value() ?? "options.json";
+                var optionsPath = Path.Combine(GetExecutingDirectoryName(), optionsFilename);
 
                 log.InfoFormat("Using options file {0}", optionsPath);
 
